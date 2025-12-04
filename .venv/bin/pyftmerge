@@ -1,0 +1,8 @@
+#!/Users/test/Desktop/광운대/2학년/2학기/업무자동화와파이썬/기말과제/Project/.venv/bin/python
+# -*- coding: utf-8 -*-
+import re
+import sys
+from fontTools.merge import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

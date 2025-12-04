@@ -3,6 +3,8 @@
 pip install requests
 pip install beautifulsoup4
 pip install PyQt6
+pip install matplotlib
+pip install fpdf2
 '''
 import sys
 from PyQt6.QtWidgets import QApplication

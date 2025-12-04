@@ -5,6 +5,7 @@ from ui.analysis_tab import AnalysisTab
 from ui.settings_tab import SettingsTab
 
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -26,3 +27,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.result_tab, "청약 완료 / 수익 입력")
         self.tabs.addTab(self.analysis_tab, "월별 수익 분석")
         self.tabs.addTab(self.settings_tab, "설정")
+
+        self.tabs.currentChanged.connect(self.on_tab_changed)
+
+    def on_tab_changed(self, index):
+        tab_name = self.tabs.tabText(index)
+
+        if tab_name == "청약 완료 / 수익 입력":
+            self.result_tab.refresh()
