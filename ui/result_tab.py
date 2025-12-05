@@ -61,15 +61,17 @@ class ResultTab(QWidget):
         # 테이블
         # ---------------------------
         self.table = QTableWidget()
-        self.table.setColumnCount(8)   # 취소 버튼 포함
+        self.table.setColumnCount(9)   # 취소 + 알림 버튼 포함
         self.table.setHorizontalHeaderLabels(
-            ["종목명", "배정수량", "매수가", "매도가", "상장일", "수익", "수익률", "취소"]
+            ["종목명", "배정수량", "매수가", "매도가",
+             "상장일", "수익", "수익률", "알림", "취소"]
         )
         layout.addWidget(self.table)
 
         # 종목명 칼럼 넓게
         self.table.setColumnWidth(0, 150)
-        self.table.setColumnWidth(7, 70)
+        self.table.setColumnWidth(7, 80)
+        self.table.setColumnWidth(8, 70)
 
         self.setLayout(layout)
 
@@ -77,7 +79,7 @@ class ResultTab(QWidget):
         self.load_completed()
         self.apply_filter()
 
-        # 자동 계산 연결 (유저 입력에만 반응하도록, 실제 채우는 동안은 blockSignals 사용)
+        # 자동 계산 연결
         self.table.itemChanged.connect(self.on_item_changed)
 
     # 🔥 탭 전환 시 refresh
@@ -88,7 +90,7 @@ class ResultTab(QWidget):
         self.table.itemChanged.connect(self.on_item_changed)
 
     # ===========================================================
-    # JSON 전체 로드 (self.all_items만 채움)
+    # JSON 전체 로드
     # ===========================================================
     def load_completed(self):
         if not self.data_path.exists():
@@ -97,14 +99,19 @@ class ResultTab(QWidget):
 
         with self.data_path.open("r", encoding="utf-8") as f:
             try:
-                self.all_items = json.load(f)
+                data = json.load(f)
             except Exception:
-                self.all_items = []
+                data = []
+
+            # 기존 데이터에 알림 필드가 없을 경우 기본값 추가
+            for item in data:
+                if "알림" not in item:
+                    item["알림"] = True
+
+            self.all_items = data
 
     # ===========================================================
-    # 상장일 문자열 → (year, month) 추출
-    #  - "2025.12.10" → (2025, 12)
-    #  - "12.10" 또는 빈 문자열 → (None, None)
+    # 상장일에서 (연도, 월) 추출
     # ===========================================================
     def _extract_year_month(self, listing_str: str):
         if not listing_str:
@@ -113,16 +120,13 @@ class ResultTab(QWidget):
         parts = listing_str.split(".")
         try:
             if len(parts) >= 3 and len(parts[0]) == 4:
-                # "YYYY.MM.DD" 형태
-                year = int(parts[0])
-                month = int(parts[1])
-                return year, month
-        except Exception:
+                return int(parts[0]), int(parts[1])
+        except:
             pass
         return None, None
 
     # ===========================================================
-    # 현재 선택된 년/월 기준으로 self.all_items를 필터링해서 테이블 채우기
+    # 화면 갱신
     # ===========================================================
     def apply_filter(self):
         if not hasattr(self, "table"):
@@ -131,91 +135,101 @@ class ResultTab(QWidget):
         try:
             selected_year = int(self.year_box.currentText())
             selected_month = int(self.month_box.currentText())
-        except Exception:
-            selected_year, selected_month = None, None
+        except:
+            selected_year = selected_month = None
 
-        # 필터링
         filtered = []
         for item in self.all_items:
             y, m = self._extract_year_month(item.get("상장일", ""))
 
             if y is None:
-                # 연도가 없는 예전 데이터는 어떤 년/월이든 항상 표시
                 filtered.append(item)
             else:
                 if y == selected_year and (m is None or m == selected_month):
                     filtered.append(item)
 
-        # 테이블 채우기 (신호 잠깐 끄기)
         self.table.blockSignals(True)
-
         self.table.setRowCount(len(filtered))
 
         for row, item in enumerate(filtered):
-            # 종목명 (읽기 전용)
+            # 종목명
             name_item = QTableWidgetItem(item.get("종목명", ""))
             name_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.table.setItem(row, 0, name_item)
 
-            # 배정수량 (편집 가능)
+            # 배정수량
             self.table.setItem(row, 1, QTableWidgetItem(item.get("배정수량", "")))
 
-            # 매수가 (읽기 전용)
+            # 매수가
             buy_item = QTableWidgetItem(str(item.get("매수가", "")))
             buy_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.table.setItem(row, 2, buy_item)
 
-            # 매도가 (편집 가능)
+            # 매도가
             self.table.setItem(row, 3, QTableWidgetItem(item.get("매도가", "")))
 
-            # 상장일 (읽기 전용)
+            # 상장일
             listing_item = QTableWidgetItem(item.get("상장일", ""))
             listing_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
             self.table.setItem(row, 4, listing_item)
 
-            # 수익 (읽기 전용)
-            profit_item = QTableWidgetItem("")
-            profit_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-            self.table.setItem(row, 5, profit_item)
-
-            # 수익률 (읽기 전용)
-            rate_item = QTableWidgetItem("")
-            rate_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-            self.table.setItem(row, 6, rate_item)
-
-            # 수익/수익률 자동 계산
+            # 수익/수익률
+            self.table.setItem(row, 5, QTableWidgetItem(""))
+            self.table.setItem(row, 6, QTableWidgetItem(""))
             self.calculate_row(row)
 
-            # 각 행에 취소 버튼 추가
+            # -----------------------------
+            # 알림 버튼
+            # -----------------------------
+            alarm_btn = QPushButton("알림 ON" if item.get("알림", True) else "알림 OFF")
+            alarm_btn.setCheckable(True)
+            alarm_btn.setChecked(item.get("알림", True))
+
+            alarm_btn.clicked.connect(lambda _, r=row: self.toggle_alarm(r))
+            self.table.setCellWidget(row, 7, alarm_btn)
+
+            # 취소 버튼
             cancel_btn = QPushButton("취소")
             cancel_btn.clicked.connect(lambda _, r=row: self.cancel_row(r))
-            self.table.setCellWidget(row, 7, cancel_btn)
+            self.table.setCellWidget(row, 8, cancel_btn)
 
         self.table.blockSignals(False)
 
     # ===========================================================
-    # 셀 변경 → 자동 계산 + 자동 저장
+    # 알림 토글
     # ===========================================================
-    def on_item_changed(self, item):
-        row = item.row()
-        col = item.column()
-        if col in (1, 3):  # 배정수량, 매도가
-            self.calculate_row(row)
-            self.save_all()
+    def toggle_alarm(self, row):
+        name = self.table.item(row, 0).text()
+        btn = self.table.cellWidget(row, 7)
+
+        for item in self.all_items:
+            if item["종목명"] == name:
+                item["알림"] = btn.isChecked()
+
+                btn.setText("알림 ON" if btn.isChecked() else "알림 OFF")
+                break
+
+        self.save_all()
 
     # ===========================================================
-    # 한 행 계산
+    # 셀 변경 -> 자동 계산 및 저장
     # ===========================================================
+    def on_item_changed(self, item):
+        if item.column() in (1, 3):
+            self.calculate_row(item.row())
+            self.save_all()
+
+    # 계산
     def calculate_row(self, row):
         qty_item = self.table.item(row, 1)
         buy_item = self.table.item(row, 2)
         sell_item = self.table.item(row, 3)
 
         try:
-            qty = int(qty_item.text()) if qty_item and qty_item.text() else 0
-            buy = int(buy_item.text()) if buy_item and buy_item.text() else 0
-            sell = int(sell_item.text()) if sell_item and sell_item.text() else 0
-        except Exception:
+            qty = int(qty_item.text() or 0)
+            buy = int(buy_item.text() or 0)
+            sell = int(sell_item.text() or 0)
+        except:
             return
 
         if qty > 0 and buy > 0 and sell > 0:
@@ -225,69 +239,31 @@ class ResultTab(QWidget):
             profit = ""
             rate = ""
 
-        # 수익 / 수익률은 읽기 전용 셀에 넣기
-        profit_item = QTableWidgetItem(str(profit))
-        profit_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-        self.table.setItem(row, 5, profit_item)
+        p_item = QTableWidgetItem(str(profit))
+        p_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+        self.table.setItem(row, 5, p_item)
 
-        rate_str = f"{rate:.2f}%" if rate != "" else ""
-        rate_item = QTableWidgetItem(rate_str)
-        rate_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-        self.table.setItem(row, 6, rate_item)
+        r_item = QTableWidgetItem(f"{rate:.2f}%" if rate != "" else "")
+        r_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+        self.table.setItem(row, 6, r_item)
 
     # ===========================================================
-    # 특정 행 ‘청약 취소’
+    # 한 행 삭제
     # ===========================================================
     def cancel_row(self, row):
-        name_item = self.table.item(row, 0)
-        if not name_item:
-            return
-        name = name_item.text()
+        name = self.table.item(row, 0).text()
 
-        # all_items에서 제거
-        self.all_items = [c for c in self.all_items if c.get("종목명") != name]
+        self.all_items = [item for item in self.all_items if item["종목명"] != name]
 
-        # JSON 저장
         with self.data_path.open("w", encoding="utf-8") as f:
             json.dump(self.all_items, f, ensure_ascii=False, indent=2)
 
-        print(f"[취소 완료] {name} 삭제됨")
-
-        # 현재 필터 기준으로 다시 표시
         self.apply_filter()
 
     # ===========================================================
-    # 저장 (현재 테이블의 변경 내용을 self.all_items에 반영 후 전체 저장)
+    # 전체 저장
     # ===========================================================
     def save_all(self):
-        # 현재 필터 기준으로 화면에 보이는 행들을 dict로 수집
-        visible_rows = {}
-        total_rows = self.table.rowCount()
-        for row in range(total_rows):
-            name_item = self.table.item(row, 0)
-            if not name_item:
-                continue
-            name = name_item.text()
-            visible_rows[name] = {
-                "종목명": name,
-                "배정수량": self.table.item(row, 1).text() if self.table.item(row, 1) else "",
-                "매수가": self.table.item(row, 2).text() if self.table.item(row, 2) else "",
-                "매도가": self.table.item(row, 3).text() if self.table.item(row, 3) else "",
-                "상장일": self.table.item(row, 4).text() if self.table.item(row, 4) else "",
-            }
-
-        # all_items에 반영
-        new_all = []
-        for item in self.all_items:
-            name = item.get("종목명", "")
-            if name in visible_rows:
-                new_all.append(visible_rows[name])
-            else:
-                new_all.append(item)
-
-        self.all_items = new_all
-
-        # JSON으로 저장
         with self.data_path.open("w", encoding="utf-8") as f:
             json.dump(self.all_items, f, ensure_ascii=False, indent=2)
 
