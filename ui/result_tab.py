@@ -1,4 +1,5 @@
-# ui/result_tab.py
+# 청약이 완료된 공모주에 대해 배정 수량, 매수가, 매도가를 입력하면 수익과 수익률을 계산하고
+# 알림 설정과 항목 삭제까지 관리하는 PyQt 기반 관리 UI 탭
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
@@ -9,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 
-
+# completed.json을 기반으로 청약 완료 종목의 수익 정보를 입력,계산,저장하는 UI
 class ResultTab(QWidget):
     def __init__(self):
         super().__init__()
@@ -20,9 +21,7 @@ class ResultTab(QWidget):
 
         self.init_ui()
 
-    # =========================================
     # UI 구성
-    # =========================================
     def init_ui(self):
         layout = QVBoxLayout()
 
@@ -30,9 +29,8 @@ class ResultTab(QWidget):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        # ---------------------------
+
         # 년/월 선택 + 조회 버튼
-        # ---------------------------
         ym_layout = QHBoxLayout()
 
         # 년도 선택
@@ -57,9 +55,8 @@ class ResultTab(QWidget):
 
         layout.addLayout(ym_layout)
 
-        # ---------------------------
+
         # 테이블
-        # ---------------------------
         self.table = QTableWidget()
         self.table.setColumnCount(9)   # 취소 + 알림 버튼 포함
         self.table.setHorizontalHeaderLabels(
@@ -82,16 +79,15 @@ class ResultTab(QWidget):
         # 자동 계산 연결
         self.table.itemChanged.connect(self.on_item_changed)
 
-    # 🔥 탭 전환 시 refresh
+    # 탭 전환 시 화면을 갱신하는 함수
     def refresh(self):
         self.table.itemChanged.disconnect(self.on_item_changed)
         self.load_completed()
         self.apply_filter()
         self.table.itemChanged.connect(self.on_item_changed)
 
-    # ===========================================================
-    # JSON 전체 로드
-    # ===========================================================
+
+    # completed.json 전체를 불러오는 함수
     def load_completed(self):
         if not self.data_path.exists():
             self.all_items = []
@@ -110,9 +106,8 @@ class ResultTab(QWidget):
 
             self.all_items = data
 
-    # ===========================================================
-    # 상장일에서 (연도, 월) 추출
-    # ===========================================================
+
+    # 상장일에서 (연도, 월)를 추출하는 함수
     def _extract_year_month(self, listing_str: str):
         if not listing_str:
             return None, None
@@ -125,9 +120,8 @@ class ResultTab(QWidget):
             pass
         return None, None
 
-    # ===========================================================
-    # 화면 갱신
-    # ===========================================================
+
+    # 선택한 연/월 기준으로 종 rows 필터링 및 테이블에 데이터를 표시하는 함수
     def apply_filter(self):
         if not hasattr(self, "table"):
             return
@@ -195,9 +189,8 @@ class ResultTab(QWidget):
 
         self.table.blockSignals(False)
 
-    # ===========================================================
-    # 알림 토글
-    # ===========================================================
+
+    # 특정 종목의 알림 활성화 상태를 변경하여 JSON에 저장하는 함수
     def toggle_alarm(self, row):
         name = self.table.item(row, 0).text()
         btn = self.table.cellWidget(row, 7)
@@ -211,15 +204,13 @@ class ResultTab(QWidget):
 
         self.save_all()
 
-    # ===========================================================
-    # 셀 변경 -> 자동 계산 및 저장
-    # ===========================================================
+    # 배정 수량 또는 매도가 변경 시 자동으로 수익/수익률을 재계산 및 저장하는 함수
     def on_item_changed(self, item):
         if item.column() in (1, 3):
             self.calculate_row(item.row())
             self.save_all()
 
-    # 계산
+    # 수익, 수익률을 계산하는 함수
     def calculate_row(self, row):
         qty_item = self.table.item(row, 1)
         buy_item = self.table.item(row, 2)
@@ -247,9 +238,7 @@ class ResultTab(QWidget):
         r_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
         self.table.setItem(row, 6, r_item)
 
-    # ===========================================================
-    # 한 행 삭제
-    # ===========================================================
+    # 특정 종목을 완료 목록에서 제거하고 JSON 파일에 즉시 갱신하는 함수
     def cancel_row(self, row):
         name = self.table.item(row, 0).text()
 
@@ -260,9 +249,7 @@ class ResultTab(QWidget):
 
         self.apply_filter()
 
-    # ===========================================================
-    # 전체 저장
-    # ===========================================================
+    # 현재 완료 종목 전체를 completed.json에 저장하는 함수
     def save_all(self):
         with self.data_path.open("w", encoding="utf-8") as f:
             json.dump(self.all_items, f, ensure_ascii=False, indent=2)

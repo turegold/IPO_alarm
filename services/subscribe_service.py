@@ -1,4 +1,4 @@
-# services/subscribe_service.py
+# 청약 예정 목록을 등록,정리,수정,삭제하고 날짜 기준으로 자동정리를 수행하는 관리 서비스 코드
 
 from pathlib import Path
 import json
@@ -10,7 +10,7 @@ from services.date_utils import parse_schedule, is_expired
 SUBSCRIBE_PATH = Path("data") / "subscribe.json"
 COMPLETED_PATH = Path("data") / "completed.json"
 
-
+# JSON 파일을 안정하게 읽기 위한 함수
 def _read_json(path: Path, default):
     if not path.exists():
         return default
@@ -20,40 +20,29 @@ def _read_json(path: Path, default):
     except:
         return default
 
-
+# JSON 파일로 저장하는 함수
 def _save_json(path: Path, data):
     path.parent.mkdir(exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# ============================================================
-# 1) 기본 로더들
-# ============================================================
 
+# subscribe.json을 그대로 로드해서 반환하는 함수
 def load_subscribe_list():
-    """기본 subscribe.json만 읽기 (정리 없음)"""
     return _read_json(SUBSCRIBE_PATH, [])
 
-
+# completed.json에서 청약 완료된 종목명만 set으로 반환하는 함수
 def load_completed_names():
-    """completed.json에서 종목명만 set으로 반환"""
     data = _read_json(COMPLETED_PATH, [])
     return {d.get("종목명") for d in data}
 
 
-# ============================================================
-# 2) 청약 예정 등록
-# ============================================================
 
+# 공모주를 청약 예정 목록에 등록하는 함수
 def register_subscribe(item: dict, year: int):
-    """
-    청약 예정 등록 로직
-    UI에서 메시지만 띄우고 실제 등록 처리는 여기서 한다.
-    return: (success: bool, message: str)
-    """
 
-    # 이미 청약 완료된 종목은 등록 불가
+    # 이미 청약 완료된 종목은 등록 불가 처리
     completed_names = load_completed_names()
     if item["종목명"] in completed_names:
         return False, "이미 청약 완료한 공모주입니다."
@@ -78,7 +67,7 @@ def register_subscribe(item: dict, year: int):
         "주관사": item.get("주간사", ""),
         "메모": "",
         "상태": "대기",
-        "알림": True,  # 기본 ON
+        "알림": True,
     }
 
     subscribe_list.append(new_entry)
@@ -87,18 +76,9 @@ def register_subscribe(item: dict, year: int):
     return True, f"{item['종목명']} 청약 예정에 등록되었습니다."
 
 
-# ============================================================
-# 3) 자동 정리 (지난 종목 / 완료된 종목 제거)
-# ============================================================
 
+# subscribe 목록을 불러와 유효하지 않은 공모주를 제거하는 함수
 def load_subscribe_with_cleanup():
-    """
-    - subscribe.json 로드
-    - 완료된 종목 제거
-    - 청약 종료일 지난 종목 제거
-    - 알림 필드 없으면 기본 True 추가
-    - 정리 결과 저장 후 목록 반환
-    """
 
     subscribe_list = load_subscribe_list()
     completed_names = load_completed_names()
@@ -109,11 +89,11 @@ def load_subscribe_with_cleanup():
     for item in subscribe_list:
         name = item.get("종목명")
 
-        # 1) 청약 완료된 종목 자동 제거
+        # 청약 완료된 종목 자동 제거
         if name in completed_names:
             continue
 
-        # 2) 청약 종료일이 지났으면 제거
+        # 청약 종료일이 지났으면 제거
         try:
             end = item.get("청약종료", "")
             if end:
@@ -123,7 +103,7 @@ def load_subscribe_with_cleanup():
         except:
             pass
 
-        # 3) 알림 필드가 없으면 기본값 True
+        # 알림 필드가 없으면 기본값 True
         if "알림" not in item:
             item["알림"] = True
 
@@ -135,10 +115,8 @@ def load_subscribe_with_cleanup():
     return cleaned
 
 
-# ============================================================
-# 4) 메모 업데이트
-# ============================================================
 
+# 특정 종목의 메모 내용을 수정하는 함수
 def update_memo(name: str, memo: str):
     items = load_subscribe_list()
 
@@ -153,10 +131,8 @@ def update_memo(name: str, memo: str):
         _save_json(SUBSCRIBE_PATH, items)
 
 
-# ============================================================
-# 5) 알림 설정 (ON/OFF)
-# ============================================================
 
+# 특정 종목의 알림 활설화 여부를 설정하는 함수
 def set_alarm_enabled(name: str, enabled: bool):
     items = load_subscribe_list()
 
@@ -171,19 +147,15 @@ def set_alarm_enabled(name: str, enabled: bool):
         _save_json(SUBSCRIBE_PATH, items)
 
 
-# ============================================================
-# 6) 종목 삭제
-# ============================================================
 
+# 청약 예정 목록에서 특정 종목을 제거하는 함수
 def delete_item(name: str):
     items = load_subscribe_list()
     filtered = [it for it in items if it.get("종목명") != name]
     _save_json(SUBSCRIBE_PATH, filtered)
 
 
-# ============================================================
-# 7) 전체 저장 (필요시)
-# ============================================================
 
+# 외부에서 가공한 subscribe 목록을 저장하는 함수
 def save_subscribe_list(items):
     _save_json(SUBSCRIBE_PATH, items)

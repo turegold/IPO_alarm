@@ -1,13 +1,10 @@
-# services/date_utils.py
+# 공모주 일정 문자열을 시작일, 종료일로 파싱하고,
+# 해당 공모주가 이미 종료되었는지 판단하는 날짜 유틸리티
 
 from datetime import datetime
 
-
+# 문자열을 파싱하여 시작일,종료일로 변환하는 함수
 def parse_schedule(schedule: str, year: int):
-    """
-    schedule: "12.10 ~ 12.11"
-    return: (datetime 시작, datetime 종료)
-    """
     try:
         s, e = schedule.split("~")
         s = s.strip().replace(".", "-")
@@ -20,10 +17,8 @@ def parse_schedule(schedule: str, year: int):
         return None, None
 
 
+# 이미 지난 공모주인지 판단하는 함수
 def is_expired(start, end):
-    """
-    이미 지난 공모주인지 판단
-    """
     if not start or not end:
         return False
 

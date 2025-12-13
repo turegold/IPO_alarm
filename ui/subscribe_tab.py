@@ -1,4 +1,4 @@
-# ui/subscribe_tab.py
+# 청약 예정으로 등록된 공모주를 조회,정리하고, 메모 작성,알림 ON/OFF,선택 삭제를 관리하는 청약 예정 관리 UI 탭
 
 from PyQt6.QtWidgets import (
     QWidget,
@@ -15,21 +15,16 @@ from services.subscribe_service import (
     set_alarm_enabled,
 )
 
-
+# 청약 예정 종목 관리 UI
 class SubscribeTab(QWidget):
-    """
-    청약 예정 탭 (UI 전용)
-    - 실제 데이터 로직은 services/subscribe_service.py 에서 처리
-    """
 
     def __init__(self):
         super().__init__()
         self.block_signal = False  # 셀 변경 시 무한 호출 방지
         self.init_ui()
 
-    # ======================
+
     # UI 구성
-    # ======================
     def init_ui(self):
         layout = QVBoxLayout()
 
@@ -49,7 +44,7 @@ class SubscribeTab(QWidget):
         desc.setStyleSheet("color: gray;")
         layout.addWidget(desc)
 
-        # -------- 버튼 영역 --------
+        # 버튼 영역
         btn_layout = QHBoxLayout()
 
         refresh_btn = QPushButton("새로고침")
@@ -63,7 +58,7 @@ class SubscribeTab(QWidget):
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
 
-        # -------- 테이블 --------
+        # 테이블
         self.table = QTableWidget()
         # 0: 종목명, 1: 청약 시작, 2: 청약 종료, 3: 증권사, 4: 메모, 5: 상태, 6: 알림 설정
         self.table.setColumnCount(7)
@@ -92,9 +87,9 @@ class SubscribeTab(QWidget):
         # 첫 로딩
         self.refresh()
 
-    # ======================
-    # 새로고침 (서비스에서 로딩 + 정리)
-    # ======================
+
+    # 서비스 레이어에서 청약 예정 목록을 불러오는 함수
+    # 자동 정리된 최신 상태로 테이블을 갱신
     def refresh(self):
         self.block_signal = True
 
@@ -103,9 +98,7 @@ class SubscribeTab(QWidget):
 
         self.block_signal = False
 
-    # ======================
-    # 테이블 업데이트
-    # ======================
+    # 로드된 데이터를 테이블에 표시하고, 각 행에 알림 ON/OFF 토글 버튼을 생성하는 함수
     def update_table(self, items):
         self.table.setRowCount(0)
 
@@ -128,7 +121,7 @@ class SubscribeTab(QWidget):
             self.table.setItem(row, 4, QTableWidgetItem(memo))
             self.table.setItem(row, 5, QTableWidgetItem(status))
 
-            # ----- 알림 설정 버튼 (ON/OFF 토글) -----
+            # 알림 설정 버튼
             btn = QPushButton()
             btn.setCheckable(True)
             btn.setChecked(alarm_enabled)
@@ -139,6 +132,7 @@ class SubscribeTab(QWidget):
 
             self.table.setCellWidget(row, 6, btn)
 
+    # 버튼 클릭 시 알림 상태를 서비스에 저장, 버튼 텍스트를 갱신하는 함수
     def _make_alarm_handler(self, name: str, button: QPushButton):
         def handler(checked: bool):
             # 서비스에 저장
@@ -147,9 +141,7 @@ class SubscribeTab(QWidget):
             button.setText("ON" if checked else "OFF")
         return handler
 
-    # ======================
-    # 메모 자동 저장
-    # ======================
+    # 메모 컬럼 수정 시 해당 종목의 메모를 자동 저장하는 함수
     def on_cell_changed(self, row, col):
         if self.block_signal:
             return
@@ -167,9 +159,7 @@ class SubscribeTab(QWidget):
 
         update_memo(name, memo)
 
-    # ======================
-    # 선택된 행 삭제
-    # ======================
+    # 선택한 청약 예정 종목을 삭제하는 함수
     def delete_selected(self):
         row = self.table.currentRow()
         if row < 0:

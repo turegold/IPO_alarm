@@ -1,4 +1,4 @@
-# ui/detail_dialog.py
+# 공모주 상세 크롤링 결과를 기반으로 회사 로고, 업종, 공모가격, 공모주식 수, 증권사 배정 정보를 표 형태로 보여주는 PyQt 상세 정보 다이얼로그 UI
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import QHeaderView
 
 import requests
 
-
+# 단일 공모주의 상세 정보를 시각적으로 보여주는 팝업 다이얼로그
 class DetailDialog(QDialog):
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
@@ -23,12 +23,10 @@ class DetailDialog(QDialog):
 
         main_layout = QVBoxLayout(self)
 
-        # =============================
-        # 1) 상단 헤더 (로고 + 종목명 + 업종)
-        # =============================
+        # 상단 헤더(회사 로고 이미지, 종목명, 업종)
         header_layout = QHBoxLayout()
 
-        # --- 로고 (테두리 제거) ---
+        # 로고
         logo_label = QLabel()
         logo_label.setFixedSize(100, 60)
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -57,7 +55,7 @@ class DetailDialog(QDialog):
 
         header_layout.addWidget(logo_label)
 
-        # --- 회사명 + 업종 ---
+        # 회사명, 업종
         text_layout = QVBoxLayout()
 
         name_label = QLabel(self.data.get("종목명", "종목명 없음"))
@@ -74,17 +72,13 @@ class DetailDialog(QDialog):
 
         main_layout.addLayout(header_layout)
 
-        # =============================
         # 구분선
-        # =============================
         line1 = QFrame()
         line1.setFrameShape(QFrame.Shape.HLine)
         line1.setFrameShadow(QFrame.Shadow.Sunken)
         main_layout.addWidget(line1)
 
-        # =============================
-        # 2) 공모 가격 테이블
-        # =============================
+        # 공모 가격 테이블
         price_title = QLabel("공모 가격 정보")
         price_title.setStyleSheet("font-weight: bold; margin-top: 6px; font-size: 15px;")
         main_layout.addWidget(price_title)
@@ -116,9 +110,8 @@ class DetailDialog(QDialog):
         line2.setFrameShadow(QFrame.Shadow.Sunken)
         main_layout.addWidget(line2)
 
-        # =============================
-        # 3) 공모 주식 수 및 배정 테이블
-        # =============================
+
+        # 공모 주식 수 및 배정 테이블
         share_title = QLabel("공모 주식 수 및 배정")
         share_title.setStyleSheet("font-weight: bold; margin-top: 6px; font-size: 15px;")
         main_layout.addWidget(share_title)
@@ -136,9 +129,8 @@ class DetailDialog(QDialog):
         line3.setFrameShadow(QFrame.Shadow.Sunken)
         main_layout.addWidget(line3)
 
-        # =============================
-        # 4) 증권사 배정 테이블
-        # =============================
+
+        # 증권사 배정 테이블
         broker_title = QLabel("증권사 및 배정 수량")
         broker_title.setStyleSheet("font-weight: bold; margin-top: 6px; font-size: 15px;")
         main_layout.addWidget(broker_title)
@@ -150,9 +142,8 @@ class DetailDialog(QDialog):
         else:
             main_layout.addWidget(QLabel("증권사 배정 정보 없음"))
 
-    # ========================================
-    # 1) Key-Value 테이블 생성
-    # ========================================
+
+    # Key-Value 테이블 생성
     def _create_kv_table(self, rows, headers):
         table = QTableWidget()
         table.setColumnCount(2)
@@ -172,9 +163,8 @@ class DetailDialog(QDialog):
 
         return table
 
-    # ========================================
-    # 2) 2D 테이블 생성
-    # ========================================
+
+    # 2D 테이블 생성
     def _create_matrix_table(self, rows):
         col_count = max(len(r) for r in rows)
         table = QTableWidget()

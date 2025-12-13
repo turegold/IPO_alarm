@@ -1,4 +1,5 @@
-# services/save_file.py
+# 공모주 투자 결과를 CSV와 PDF로 저장하고, 월별 수익, 수익률 그래프를 생성해 리포트 형태로 출력하는 파일 저장/리포트 생성 모듈
+
 
 from pathlib import Path
 import csv
@@ -10,9 +11,8 @@ import os
 os.environ["QT_LOGGING_RULES"] = "*.debug=false;*.warning=false"
 
 
-# ---------------------------
+
 # 폰트 경로 설정
-# ---------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 FONT_PATH = DATA_DIR / "fonts" / "Noto_Sans_KR" / "NotoSansKR-VariableFont_wght.ttf"
@@ -20,16 +20,14 @@ FONT_PATH = DATA_DIR / "fonts" / "Noto_Sans_KR" / "NotoSansKR-VariableFont_wght.
 TEMP_DIR = Path(tempfile.gettempdir())
 
 
-# ---------------------------
+
 # Matplotlib 한글 폰트 설정
-# ---------------------------
 if FONT_PATH.exists():
     font_manager.fontManager.addfont(str(FONT_PATH))
     rc("font", family="Noto Sans KR")
 
-
+# 월별 요약 데이터를 CSV 파일로 저장하는 함수
 def save_csv(path, table_widget):
-    """UI 테이블 내용을 CSV로 저장"""
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
         w.writerow(["Month", "Profit", "Avg Return", "Count"])
@@ -42,10 +40,9 @@ def save_csv(path, table_widget):
                 table_widget.item(i, 3).text(),
             ])
 
-
+# 월별 총 수익 / 평균 수익률 그래프를 matplotlib으로 생성하는 함수
 def create_graphs(current_profit, current_rate):
-    """그래프를 임시폴더에 생성하고 경로 반환"""
-
+    # 그래프를 임시폴더에 생성하고 경로를 반환
     profit_img = str(TEMP_DIR / "profit_graph.png")
     rate_img = str(TEMP_DIR / "rate_graph.png")
 
@@ -75,9 +72,8 @@ def create_graphs(current_profit, current_rate):
 
     return profit_img, rate_img
 
-
+# 종합 투자 리포트 PDF를 생성하는 함수
 def save_pdf(path, year, table_widget, monthly_items, current_profit, current_rate, monthly_qty):
-    """PDF 저장 전체 로직"""
 
     if not FONT_PATH.exists():
         raise FileNotFoundError("한글 폰트를 찾을 수 없습니다.")

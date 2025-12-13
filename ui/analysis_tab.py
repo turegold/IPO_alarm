@@ -1,4 +1,5 @@
-# analysis_tab.py
+# 청약 완료된 공모주 데이터를 기반으로 연도별 수익,수익률을 분석하고
+# 결과를 테이블로 표시하며 CSV,PDF로 저장할 수 있는 PyQt 분석 UI 탭
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox,
@@ -11,7 +12,7 @@ import json
 
 from services.save_file import save_csv, save_pdf
 
-
+# 공모주 월별 수익 분석 화면을 담당하는 클래스
 class AnalysisTab(QWidget):
     def __init__(self):
         super().__init__()
@@ -73,14 +74,14 @@ class AnalysisTab(QWidget):
 
         self.run_analysis()
 
-    # -----------------------------
-    # CSV / PDF 저장
-    # -----------------------------
+
+    # CSV 저장
     def handle_save_csv(self):
         path, _ = QFileDialog.getSaveFileName(self, "CSV 저장", "", "CSV (*.csv)")
         if path:
             save_csv(path, self.table)
 
+    # PDF 저장
     def handle_save_pdf(self):
         path, _ = QFileDialog.getSaveFileName(self, "PDF 저장", "", "PDF (*.pdf)")
         if path:
@@ -94,9 +95,7 @@ class AnalysisTab(QWidget):
                 self.monthly_qty_total
             )
 
-    # -----------------------------
-    # 데이터 로드 + 분석
-    # -----------------------------
+    # completed.json 파일을 로드하여 분석 대상 전체 종목 데이터를 메모리에 저장하는 함수
     def load_json(self):
         if not self.data_path.exists():
             self.all_items = []
@@ -107,6 +106,7 @@ class AnalysisTab(QWidget):
         except:
             self.all_items = []
 
+    # 문자열을 파싱하여 연도/월로 분리하여 반환하는 함수
     def parse_listing(self, listing):
         try:
             y, m, _ = listing.split(".")
@@ -114,6 +114,8 @@ class AnalysisTab(QWidget):
         except:
             return None, None
 
+    # 선택한 연도를 기준으로 종목 필터링, 수익,수익률 계산, 월별 통계 집계하고,
+    # 계산 결과를 테이블에 표시, PDF/CSV 저장용 내부 데이터로 저장하는 함수
     def run_analysis(self):
         self.load_json()
 

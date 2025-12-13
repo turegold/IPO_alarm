@@ -1,4 +1,4 @@
-# main_window.py
+# 애플리케이션의 메인 윈도우를 구성하고, 여러 기능 탭을 통합하여 공모주 알림 스케줄러를 실행하는 중앙 컨트롤러 역할을 하는 메인 창
 
 from PyQt6.QtWidgets import QMainWindow, QTabWidget
 from ui.schedule_tab import ScheduleTab
@@ -8,6 +8,7 @@ from ui.settings_tab import SettingsTab
 from ui.subscribe_tab import SubscribeTab
 from services.alarm_scheduler import AlarmScheduler   # ★ 추가
 
+# 프로그램 전체를 감싸는 최상위 메인 윈도우
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -18,7 +19,7 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
-        # 🔔 알람 스케줄러 생성 + 시작
+        # 알람 스케줄러 생성 + 시작
         self.alarm_scheduler = AlarmScheduler(self)
         self.alarm_scheduler.start()
 
@@ -37,6 +38,7 @@ class MainWindow(QMainWindow):
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
 
+    # 사용자가 탭을 전환할 때 호출되는 이벤트 핸들러
     def on_tab_changed(self, index):
         tab_name = self.tabs.tabText(index)
 

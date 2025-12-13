@@ -1,4 +1,5 @@
-# services/crawler.py
+#월별 공모주 일정을 크롤링해 상세 정보까지 수집한 뒤 JSON 파일로 저장하는 로직
+
 import json
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from bs4 import BeautifulSoup
 BASE_URL = "http://www.ipostock.co.kr"
 
 
+# 공모주 목록 가져오기
 def get_ipo_list(year: int, month: int):
     url = f"{BASE_URL}/sub03/ipo04.asp?str1={year}&str2={month}"
     res = requests.get(url)
@@ -27,7 +29,7 @@ def get_ipo_list(year: int, month: int):
         if len(cells) < 10:
             continue
 
-        # 공모일정 (NBSP → 공백 치환)
+        # 공모일정
         schedule = cells[1].get_text(strip=True).replace("\xa0", " ")
 
         # 목록에서 보이는 이름 & 상세페이지 링크
@@ -75,13 +77,13 @@ def get_ipo_list(year: int, month: int):
                 "상장일": listing_date,
                 "경쟁률": rate,
                 "주간사": broker,
-                "상세URL": detail_url,   # ⭐ 여기 추가
+                "상세URL": detail_url,
             }
         )
 
     return ipo_data
 
-
+# 수집한 데이터를 포맷에 맞게 저장하는 함수
 def save_ipo_json(year: int, month: int):
     data = get_ipo_list(year, month)
 

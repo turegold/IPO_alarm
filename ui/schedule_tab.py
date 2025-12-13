@@ -1,4 +1,4 @@
-# ui/schedule_tab.py
+# 월별 공모주 일정을 크롤링해 조회하고, 상세 정보 확인, 청약 예정 등록, 청약 완료 처리까지 한 화면에서 관리하는 PyQt 기반 메인 일정 조회 UI 탭
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
@@ -12,7 +12,6 @@ from pathlib import Path
 import json
 from datetime import datetime
 
-# ---- 서비스 로직 호출 ----
 from services.ipo_loader import (
     load_ipo_list,
     load_completed_names,
@@ -26,9 +25,7 @@ from services.detail_crawler import crawl_detail
 from ui.detail_dialog import DetailDialog
 
 
-# ==========================
-# ✔ 크롤링 스레드
-# ==========================
+# 월별 공모주 데이터를 백그라운드 스레드에서 크롤링하는 함수
 class CrawlThread(QThread):
     finished = pyqtSignal(bool)
 
@@ -45,9 +42,7 @@ class CrawlThread(QThread):
             self.finished.emit(False)
 
 
-# ==========================
-# ✔ 메인 UI
-# ==========================
+# 공모주 일정 조회 UI
 class ScheduleTab(QWidget):
     def __init__(self):
         super().__init__()
@@ -56,9 +51,7 @@ class ScheduleTab(QWidget):
         self.crawl_thread = None
         self.init_ui()
 
-    # ---------------------------
     # UI 구성
-    # ---------------------------
     def init_ui(self):
         layout = QVBoxLayout()
 
@@ -111,9 +104,7 @@ class ScheduleTab(QWidget):
         # 초기 자동 로딩
         QTimer.singleShot(100, self.start_query)
 
-    # ---------------------------
-    # 조회 수행 (스레드 호출)
-    # ---------------------------
+    # UI 입력 비활성화, 로딩 애니메이션 표시, 크롤링 스레드 시작을 하는 함수
     def start_query(self):
         self.query_btn.setEnabled(False)
         self.year_box.setEnabled(False)
@@ -129,6 +120,7 @@ class ScheduleTab(QWidget):
         self.crawl_thread.finished.connect(self.finish_query)
         self.crawl_thread.start()
 
+    # 크롤링 종료 후 UI를 복구하는 함수
     def finish_query(self, ok):
         self.movie.stop()
         self.loading_label.hide()
@@ -140,9 +132,7 @@ class ScheduleTab(QWidget):
         if ok:
             self.load_latest_data()
 
-    # ---------------------------
-    # 로드된 JSON → UI 반영
-    # ---------------------------
+    # 로드된 데이터를 UI에 반영하는 함수
     def load_latest_data(self):
         year = int(self.year_box.currentText())
         month = int(self.month_box.currentText())
@@ -159,16 +149,13 @@ class ScheduleTab(QWidget):
             self.table_schedule.setItem(row, 2, QTableWidgetItem(item["상장일"]))
             self.table_schedule.setItem(row, 3, QTableWidgetItem(item["주간사"]))
 
-            # ---------------------------
             # 자세히 보기
-            # ---------------------------
             btn_detail = QPushButton("보기")
             btn_detail.clicked.connect(lambda _, data=item: self.open_detail(data))
             self.table_schedule.setCellWidget(row, 4, btn_detail)
 
-            # ---------------------------
+
             # 청약 예정 버튼
-            # ---------------------------
             btn_sub = QPushButton()
             if item["종목명"] in subscribe_names:
                 btn_sub.setText("등록됨")
@@ -184,9 +171,8 @@ class ScheduleTab(QWidget):
                 )
             self.table_schedule.setCellWidget(row, 5, btn_sub)
 
-            # ---------------------------
+
             # 청약 완료 버튼
-            # ---------------------------
             btn_done = QPushButton()
             if item["종목명"] in completed_names:
                 btn_done.setText("완료됨")
@@ -198,14 +184,14 @@ class ScheduleTab(QWidget):
                 )
             self.table_schedule.setCellWidget(row, 6, btn_done)
 
-            # ---------------------------
             # 테이블 색상 적용
-            # ---------------------------
             self.apply_row_style(row, item["공모일정"], year)
 
-    # ---------------------------
-    # 색상 적용
-    # ---------------------------
+
+    # 공모주 일정 기준으로 행 색상을 지정하는 함수
+    # 지난 공모주: 빨간색 배경
+    # 진행 중인 공모주: 초록색 배경
+    # 예정 공모주: 흰 배경
     def apply_row_style(self, row, schedule: str, year: int):
         start, end = parse_schedule(schedule, year)
 
@@ -220,9 +206,8 @@ class ScheduleTab(QWidget):
             if item:
                 item.setBackground(bg)
 
-    # ---------------------------
-    # 상세 페이지 열기
-    # ---------------------------
+
+    # 종목 상세 URL을 크롤링하는 함수
     def open_detail(self, item: dict):
         detail_url = item.get("상세URL")
         if detail_url:
@@ -237,9 +222,8 @@ class ScheduleTab(QWidget):
         dialog = DetailDialog(detail, self)
         dialog.exec()
 
-    # ---------------------------
-    # 청약 예정 추가 버튼 클릭
-    # ---------------------------
+
+    # 공모주를 청약 예정 목록에 등록하는 함수
     def click_subscribe(self, item: dict):
         year = int(self.year_box.currentText())
 
@@ -252,13 +236,12 @@ class ScheduleTab(QWidget):
 
         self.load_latest_data()
 
-    # 이미 완료한 공모주인데 예정을 누른 경우
+    # 이미 완료한 공모주인데 예정을 누른 경우, 경고 메시지를 표시하는 함수
     def warn_already_completed(self):
         QMessageBox.warning(self, "안내", "이미 청약 완료한 공모주입니다.")
 
-    # ---------------------------
-    # 청약 완료 처리
-    # ---------------------------
+
+    # 청약 완료 처리를 하는 함수
     def click_completed(self, item: dict):
         year = int(self.year_box.currentText())
 

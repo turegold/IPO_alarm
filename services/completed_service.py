@@ -1,4 +1,5 @@
-# services/completed_service.py
+# 공모주 청약이 완료된 종목을 completed.json에 저장 및 관리하고,
+# 확정 공모가를 크롤링해 자동 반영하며 기존 청약 목록에서 제거하는 로직
 
 from pathlib import Path
 import json
@@ -8,7 +9,7 @@ from services.detail_crawler import crawl_detail
 COMPLETED_PATH = Path("data") / "completed.json"
 SUBSCRIBE_PATH = Path("data") / "subscribe.json"
 
-
+# completed.json 파일을 읽어 청약 완료 종목을 불러오는 함수
 def load_completed():
     if not COMPLETED_PATH.exists():
         return []
@@ -18,15 +19,14 @@ def load_completed():
         return []
 
 
+# 전달받은 데이터를 completed.json 파일에 저장하는 함수
 def save_completed(data):
     json.dump(data, COMPLETED_PATH.open("w", encoding="utf-8"),
               ensure_ascii=False, indent=2)
 
 
+# 특정 종목을 청약 완료 상태로 등록하는 함수
 def mark_completed(item: dict, year: int):
-    """
-    UI 로직 제거 → 서비스 레이어로 이동
-    """
     completed = load_completed()
 
     # 이미 존재하는가?

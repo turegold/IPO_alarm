@@ -1,4 +1,5 @@
-# services/alarm_scheduler.py
+# QTimer를 이용해 매일 오전 9시에 공모주 일정을 자동으로 확인하고
+# 디스코드 알림을 보내는 스케줄러
 
 from PyQt6.QtCore import QObject, QTimer
 from datetime import datetime, date
@@ -22,7 +23,7 @@ class AlarmScheduler(QObject):
         self.timer.start()
         self._check_and_notify()
 
-    # 일반 9시 자동 알람
+    # 오전 9시 자동 알람
     def _check_and_notify(self, force: bool = False):
         now = datetime.now()
         today = now.date()
@@ -35,9 +36,8 @@ class AlarmScheduler(QObject):
 
         self.last_run_date = today
 
-        # -----------------------------
+
         # 청약 시작 알람
-        # -----------------------------
         subscribe_list = load_subscribe_list()
         for item in subscribe_list:
             start_str = item.get("청약시작")
@@ -56,9 +56,7 @@ class AlarmScheduler(QObject):
                     broker=item.get("주관사", "")
                 )
 
-        # -----------------------------
         # 상장 알람
-        # -----------------------------
         completed_list = load_completed()
         for item in completed_list:
             listing_str = item.get("상장일", "")
@@ -76,9 +74,7 @@ class AlarmScheduler(QObject):
                     listing_date=listing_str
                 )
 
-    # =============================================================
-    # 🔥 디버그용: 청약일이 가장 가까운 종목을 찾아 알람 보내기
-    # =============================================================
+    # 디버그용: 청약일이 가장 가까운 종목을 찾아 알람 보내기
     def debug_subscribe_alarm(self):
         subscribe_list = load_subscribe_list()
         if not subscribe_list:
@@ -87,7 +83,7 @@ class AlarmScheduler(QObject):
         today = date.today()
         candidates = []
 
-        # 청약일 → today 와 가장 가까운 날짜 찾기
+        # today 와 가장 가까운 날짜 찾기
         for item in subscribe_list:
             start_str = item.get("청약시작")
             if not start_str:
@@ -118,9 +114,8 @@ class AlarmScheduler(QObject):
 
         return found
 
-    # =============================================================
-    # 🔥 디버그용: 상장일이 가장 가까운 종목을 찾아 알람 보내기
-    # =============================================================
+
+    # 디버그용: 상장일이 가장 가까운 종목을 찾아 알람 보내기
     def debug_listing_alarm(self):
         completed_list = load_completed()
         if not completed_list:

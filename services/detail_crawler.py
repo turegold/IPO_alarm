@@ -1,4 +1,6 @@
-# services/detail_crawler.py
+# IPO Stock 공모주 상세 페이지를 크롤링하여
+# 회사 로고, 업종, 공모가격, 공모주식 수, 증권사별 정보 등을 구조화된 데이터로 추출하는 크롤러
+
 
 import requests
 from bs4 import BeautifulSoup
@@ -6,15 +8,15 @@ from bs4 import BeautifulSoup
 BASE_URL = "http://www.ipostock.co.kr"
 
 
+# 공모주 상세 페이지 HTML을 요청하고, BeautifulSoup 객체로 변환해 반환하는 함수
 def fetch_detail_page(url: str):
     res = requests.get(url)
     res.encoding = "utf-8"
     return BeautifulSoup(res.text, "html.parser")
 
 
-# ---------------------------------------------------
-# 1) 회사 로고
-# ---------------------------------------------------
+
+# 상세 페이지에서 회사 로고 이미지 URL을 추출하는 함수
 def parse_logo(soup):
     logo_tag = soup.find("img", src=lambda v: v and "upload/img/corp" in v)
 
@@ -28,23 +30,14 @@ def parse_logo(soup):
     return None
 
 
-# ---------------------------------------------------
-# 2) 업종
-# ---------------------------------------------------
+# 기업의 업종 정보를 파싱하는 함수
 def parse_sector(soup):
     sector_tag = soup.find("td", {"align": "right", "valign": "bottom"})
     return sector_tag.get_text(strip=True) if sector_tag else None
 
 
-# ---------------------------------------------------
-# 3) 공모가격 테이블 (가격 정보)
-# ---------------------------------------------------
+# (희망)공모가격, (확장)공모가격, 청약 경쟁률 등의 정보를 추출하는 함수
 def parse_price_table(soup):
-    """
-    (희망)공모가격 ~ 청약경쟁률 구간을 파싱
-    왼쪽 td(bgcolor=F0F0F0) = 항목명
-    오른쪽 td = 값
-    """
     price_info = {}
 
     for td in soup.find_all("td", bgcolor="F0F0F0"):
@@ -57,13 +50,8 @@ def parse_price_table(soup):
     return price_info
 
 
-# ---------------------------------------------------
-# 4) 공모주식수 테이블
-# ---------------------------------------------------
+# '공모주식수'가 포함된 테이블을 찾아 데이터를 추출하는 함수
 def parse_share_table(soup):
-    """
-    '공모주식수'가 포함된 view_tb 테이블만 선택
-    """
     tables = soup.find_all("table", class_="view_tb")
     for table in tables:
         first_row = table.find("tr")
@@ -83,13 +71,8 @@ def parse_share_table(soup):
     return []
 
 
-# ---------------------------------------------------
-# 5) 증권사 배정 테이블
-# ---------------------------------------------------
+# '증권회사'가 있는 테이블을 찾아 데이터를 추출하는 함수
 def parse_broker_table(soup):
-    """
-    header row의 첫 번째 셀이 '증권회사'인 테이블 찾기
-    """
     tables = soup.find_all("table", {"class": "view_tb"})
 
     for table in tables:
@@ -110,9 +93,7 @@ def parse_broker_table(soup):
     return []
 
 
-# ---------------------------------------------------
-# 전체 상세페이지 크롤링
-# ---------------------------------------------------
+# 위의 모든 파싱 함수를 호출해 상세 페이지의 핵심 정보를 하나의 딕셔너리로 통합하여 반환하는 함수
 def crawl_detail(url: str):
     soup = fetch_detail_page(url)
 
@@ -125,9 +106,7 @@ def crawl_detail(url: str):
     }
 
 
-# ---------------------------------------------------
-# TEST
-# ---------------------------------------------------
+
 if __name__ == "__main__":
     test_url = "http://www.ipostock.co.kr/view_pg/view_04.asp?code=B202506111&gmenu="
     from pprint import pprint
