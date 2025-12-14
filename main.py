@@ -1,5 +1,5 @@
 # 실행 전 라이브러리 설치
-# pip install -r requirements.txt
+# python -m pip install -r requirements.txt
 
 import sys
 from PyQt6.QtWidgets import QApplication
