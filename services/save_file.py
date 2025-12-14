@@ -30,11 +30,12 @@ if FONT_PATH.exists():
 def save_csv(path, table_widget):
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
-        w.writerow(["Month", "Profit", "Avg Return", "Count"])
+
+        w.writerow(["월", "총 수익(원)", "평균 수익률(%)", "종목 수"])
 
         for i in range(12):
             w.writerow([
-                i + 1,
+                f"{i + 1}월",
                 table_widget.item(i, 1).text(),
                 table_widget.item(i, 2).text(),
                 table_widget.item(i, 3).text(),

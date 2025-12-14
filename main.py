@@ -1,11 +1,6 @@
-# 실행 전 install 목록
-'''
-pip install requests
-pip install beautifulsoup4
-pip install PyQt6
-pip install matplotlib
-pip install fpdf2
-'''
+# 실행 전 라이브러리 설치
+# pip install -r requirements.txt
+
 import sys
 from PyQt6.QtWidgets import QApplication
 from ui.main_window import MainWindow

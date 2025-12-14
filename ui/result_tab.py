@@ -206,9 +206,25 @@ class ResultTab(QWidget):
 
     # 배정 수량 또는 매도가 변경 시 자동으로 수익/수익률을 재계산 및 저장하는 함수
     def on_item_changed(self, item):
-        if item.column() in (1, 3):
-            self.calculate_row(item.row())
-            self.save_all()
+        row = item.row()
+        col = item.column()
+
+        if col not in (1, 3):  # 배정수량, 매도가만 처리
+            return
+
+        name = self.table.item(row, 0).text()
+        value = item.text()
+
+        for data in self.all_items:
+            if data["종목명"] == name:
+                if col == 1:
+                    data["배정수량"] = value
+                elif col == 3:
+                    data["매도가"] = value
+                break
+
+        self.calculate_row(row)
+        self.save_all()
 
     # 수익, 수익률을 계산하는 함수
     def calculate_row(self, row):
